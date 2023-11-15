@@ -30,8 +30,6 @@ def simpleTopology():
     net.build()
     c0.start()
     s1.start([c0])
-    net.start()
-    net.terms += makeTerms(net.hosts, 'xterm')
 
     info('*** Running CLI\n')
     # Run the Mininet CLI
