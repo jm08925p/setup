@@ -1,33 +1,40 @@
 import socket
+import threading
+
+def handle_client_connection(client_socket):
+    """Handles the client connection in a separate thread."""
+    try:
+        while True:
+            data = client_socket.recv(1024).decode()
+            if not data:
+                break
+            print(f"SCADA received data: {data}")
+            # Additional processing logic can be added here
+    finally:
+        client_socket.close()
 
 def start_scada_server(host, port):
-    """Starts the SCADA server to listen for incoming data."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((host, port))
-    s.listen()
-    conn, addr = s.accept()
-    return conn, addr
+    """Starts the SCADA server and listens for incoming connections."""
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((host, port))
+    server.listen(5)  # Adjust the number of queued connections
+    print(f"SCADA server listening on {host}:{port}")
 
-def process_plc_data(data):
-    """Processes data received from the PLC."""
-    print(f"SCADA received data: {data}")
-    if "Valve OPEN" in data:
-        print("Alert: Valve opened due to low pressure")
+    try:
+        while True:
+            client_sock, address = server.accept()
+            print(f"Accepted connection from {address}")
+            client_handler = threading.Thread(
+                target=handle_client_connection,
+                args=(client_sock,)
+            )
+            client_handler.start()
+    finally:
+        server.close()
 
 # Configuration for SCADA server
-scada_host = ''  # Empty string means listening on all interfaces
+scada_host = '0.0.0.0'  # Listen on all network interfaces
 scada_port = 12345
 
 # Start the SCADA server
-conn, addr = start_scada_server(scada_host, scada_port)
-print(f"SCADA server started, connected to {addr}")
-
-# Main loop
-try:
-    while True:
-        data = conn.recv(1024).decode()
-        if not data:
-            break
-        process_plc_data(data)
-finally:
-    conn.close()
+start_scada_server(scada_host, scada_port)
